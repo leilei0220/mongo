@@ -116,6 +116,7 @@ public class StudentService {
         query.skip(skip).limit(queryForm.getPageSize());
         List<Student> students = mongoTemplate.find(query, Student.class);
         // 3.获取总页数 总数除每页长度
+        // 4.拼接返回分页响应
         return  PageVO.getPageResult(students, queryForm.getPageIndex(), queryForm.getPageSize(), count);
     }
 }
