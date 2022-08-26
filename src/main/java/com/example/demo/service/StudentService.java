@@ -29,40 +29,24 @@ public class StudentService {
 
     public int insertStudent(Student student) {
         student.setTimer(LocalDateTime.now());
-        try {
-            mongoTemplate.insert(student);
-            return 1;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return -1;
-        }
+        mongoTemplate.insert(student);
+        return 1;
+
     }
 
 
     public int updateStudent(Student student) {
         Query query = new Query(Criteria.where("_id").is(student.getId()));
         Update update = new Update().set("username", student.getUsername());
-        try {
-            mongoTemplate.updateFirst(query, update, Student.class);
-            return 1;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return -1;
-        }
+        mongoTemplate.updateFirst(query, update, Student.class);
+        return 1;
     }
 
 
     public int removeStudent(Long id) {
         Query query = new Query(Criteria.where("_id").is(id));
-        try {
-            mongoTemplate.remove(query, Student.class);
-            return 1;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return -1;
-        }
-
-
+        mongoTemplate.remove(query, Student.class);
+        return 1;
     }
 
 
@@ -117,6 +101,6 @@ public class StudentService {
         List<Student> students = mongoTemplate.find(query, Student.class);
         // 3.获取总页数 总数除每页长度
         // 4.拼接返回分页响应
-        return  PageVO.getPageResult(students, queryForm.getPageIndex(), queryForm.getPageSize(), count);
+        return PageVO.getPageResult(students, queryForm.getPageIndex(), queryForm.getPageSize(), count);
     }
 }

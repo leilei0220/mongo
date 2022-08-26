@@ -5,7 +5,7 @@ import lombok.Data;
 /**
  * @author lei
  * @create 2022-08-26 14:51
- * @desc
+ * @desc 分页查询表单
  **/
 @Data
 public class StudentQueryForm {
