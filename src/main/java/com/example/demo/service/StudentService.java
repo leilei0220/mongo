@@ -1,8 +1,8 @@
-package com.example.demo.service.impl;
+package com.example.demo.service;
 
+import com.example.demo.entity.PageVO;
 import com.example.demo.entity.Student;
-import com.example.demo.service.IStudentService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.demo.entity.StudentQueryForm;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -20,15 +20,17 @@ import java.util.regex.Pattern;
  * @desc :
  */
 @Service
-public class StudentServiceImpl implements IStudentService {
-    @Autowired
-    private MongoTemplate mongoTemplate;
+public class StudentService {
+    private final MongoTemplate mongoTemplate;
 
-    @Override
+    public StudentService(MongoTemplate mongoTemplate) {
+        this.mongoTemplate = mongoTemplate;
+    }
+
     public int insertStudent(Student student) {
         student.setTimer(LocalDateTime.now());
-        mongoTemplate.insert(student);
         try {
+            mongoTemplate.insert(student);
             return 1;
         } catch (Exception e) {
             e.printStackTrace();
@@ -36,7 +38,7 @@ public class StudentServiceImpl implements IStudentService {
         }
     }
 
-    @Override
+
     public int updateStudent(Student student) {
         Query query = new Query(Criteria.where("_id").is(student.getId()));
         Update update = new Update().set("username", student.getUsername());
@@ -49,11 +51,11 @@ public class StudentServiceImpl implements IStudentService {
         }
     }
 
-    @Override
+
     public int removeStudent(Long id) {
-        Query query=new Query(Criteria.where("_id").is(id));
+        Query query = new Query(Criteria.where("_id").is(id));
         try {
-            mongoTemplate.remove(query,Student.class);
+            mongoTemplate.remove(query, Student.class);
             return 1;
         } catch (Exception e) {
             e.printStackTrace();
@@ -63,42 +65,57 @@ public class StudentServiceImpl implements IStudentService {
 
     }
 
-    @Override
+
     public Student findOne(Student student) {
         Query query = new Query(Criteria.where("_id").is(student.getId()));
-        Student one = mongoTemplate.findOne(query, Student.class);
-        return one;
+        return mongoTemplate.findOne(query, Student.class);
     }
 
-    @Override
-    public List<Student> findlike(Student student) {
+
+    public List<Student> findLike(Student student) {
         Pattern pattern = Pattern.compile("^.*" + student.getUsername().trim() + ".*$", Pattern.CASE_INSENSITIVE);
         Query query = new Query(Criteria.where("username").regex(pattern));
-        List<Student> studentList = mongoTemplate.find(query, Student.class);
-        return studentList;
+        return mongoTemplate.find(query, Student.class);
     }
 
-    @Override
-    public List<Student> findmore(Student student) {
+
+    public List<Student> findMore(Student student) {
         Query query = new Query(Criteria.where("username").is(student.getUsername()));
-        List<Student> students = mongoTemplate.find(query, Student.class);
-        return students;
+        return mongoTemplate.find(query, Student.class);
     }
 
-    @Override
-    public List<Student> findtime(Student student) {
+
+    public List<Student> findTime(Student student) {
         Query query = new Query();
         query.with(new Sort(Sort.Direction.DESC, "timer"));
-        List<Student> students = mongoTemplate.find(query, Student.class);
-        return students;
+        return mongoTemplate.find(query, Student.class);
     }
 
-    @Override
-    public List<Student> findtimeByPage(Student student) {
+    /**
+     * mongodb分页查询需要自己拼装一下
+     *
+     * @param queryForm
+     * @return PageVO<Student>
+     * @author lei
+     * @date 2022-08-26 14:53:43
+     */
+    public PageVO<Student> findByPage(StudentQueryForm queryForm) {
+
         Query query = new Query();
+        if (queryForm.getUsername() != null) {
+            query.addCriteria(Criteria.where("username").is(queryForm.getUsername()));
+        }
+        // 1.根据条件查询总数 总数无数据则反回空数据分页对象
+        int count = (int) mongoTemplate.count(query, Student.class);
+        if (count < 1) {
+            return PageVO.emptyResult();
+        }
         query.with(new Sort(Sort.Direction.DESC, "timer"));
-        query.skip(0).limit(3);
+        // 2.有数据,则查询指定页数数据 (skip =(当前页-1)*指定页长度)
+        int skip = (queryForm.getPageIndex() - 1) * queryForm.getPageSize();
+        query.skip(skip).limit(queryForm.getPageSize());
         List<Student> students = mongoTemplate.find(query, Student.class);
-        return students;
+        // 3.获取总页数 总数除每页长度
+        return  PageVO.getPageResult(students, queryForm.getPageIndex(), queryForm.getPageSize(), count);
     }
 }
